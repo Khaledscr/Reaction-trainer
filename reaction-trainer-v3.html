@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#03050d">
+<title>رد الفعل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#03050d;--s1:#070c18;--s2:#0c1222;--s3:#111828;
+  --border:#162040;--border2:#1e3060;
+  --text:#c8d8f8;--muted:#3a5070;--muted2:#5a7090;
+  --accent:#00d4ff;--accent-d:#002030;
+  --purple:#a855f7;--purple-d:#1a0030;
+  --green:#00ff88;--green-d:#001a10;
+  --amber:#ffb800;--amber-d:#201800;
+  --red:#ff3355;--red-d:#200010;
+  --gold:#ffd700;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'IBM Plex Sans Arabic',sans-serif;
+  --display:'Orbitron',sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --glow-cyan:0 0 20px rgba(0,212,255,.4),0 0 60px rgba(0,212,255,.15);
+  --glow-green:0 0 20px rgba(0,255,136,.4),0 0 60px rgba(0,255,136,.15);
+  --glow-gold:0 0 20px rgba(255,215,0,.4),0 0 60px rgba(255,215,0,.15);
+  --glow-red:0 0 20px rgba(255,51,85,.4),0 0 60px rgba(255,51,85,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--text);touch-action:manipulation;-webkit-font-smoothing:antialiased}
+
+/* Scanline overlay */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:9999}
+
+.app{width:100%;height:100%;display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bot);overflow:hidden}
+
+/* HEADER */
+.header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;background:var(--s1);border-bottom:1px solid var(--border);position:relative}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center}
+.brand-logo svg{position:absolute}
+.brand-name{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:2px;color:var(--accent);text-shadow:0 0 12px rgba(0,212,255,.5)}
+.brand-sub{font-size:9px;color:var(--muted);font-family:var(--mono);letter-spacing:1px;margin-top:1px}
+.hud-right{display:flex;align-items:center;gap:10px}
+.level-badge{background:linear-gradient(135deg,#1a0030,#2a0050);border:1px solid var(--purple);border-radius:8px;padding:5px 10px;text-align:center}
+.level-badge .lv{font-family:var(--display);font-size:9px;color:var(--purple);letter-spacing:1px}
+.level-badge .lv-num{font-family:var(--display);font-size:16px;font-weight:700;color:#d090ff;line-height:1;text-shadow:0 0 8px rgba(168,85,247,.5)}
+.xp-bar-wrap{width:50px;height:3px;background:var(--s3);border-radius:2px;margin-top:3px;overflow:hidden}
+.xp-bar{height:100%;background:linear-gradient(90deg,var(--purple),#d090ff);border-radius:2px;transition:width .4s ease;width:0%}
+.score-hud{text-align:center}
+.score-hud .sc-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px}
+.score-hud .sc-val{font-family:var(--display);font-size:18px;font-weight:700;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,.4);line-height:1}
+
+/* TABBAR */
+.tabbar{flex-shrink:0;display:flex;background:var(--s1);border-bottom:1px solid var(--border)}
+.tb{flex:1;padding:10px 0;text-align:center;font-size:12px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:color .18s;position:relative;font-family:var(--sans);letter-spacing:.5px}
+.tb.on{color:var(--accent)}
+.tb.on::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:2px 2px 0 0;box-shadow:0 0 8px var(--accent)}
+
+/* PANELS */
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;pointer-events:none;transition:opacity .18s}
+.panel.on{opacity:1;pointer-events:all}
+#p-train{display:flex;flex-direction:column;padding:12px 12px 16px;gap:10px}
+
+/* COMBO DISPLAY */
+.combo-strip{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--s1);border:1px solid var(--border);border-radius:12px;transition:all .2s}
+.combo-strip.hot{border-color:var(--amber);background:rgba(30,24,0,.8);box-shadow:0 0 12px rgba(255,184,0,.2)}
+.combo-strip.fire{border-color:var(--red);background:rgba(20,0,10,.8);box-shadow:0 0 12px rgba(255,51,85,.2);animation:comboPulse .5s ease-in-out infinite}
+.combo-left{display:flex;align-items:center;gap:8px}
+.combo-icon{font-size:18px;line-height:1}
+.combo-label{font-family:var(--display);font-size:10px;letter-spacing:1px;color:var(--muted)}
+.combo-val{font-family:var(--display);font-size:22px;font-weight:700;color:var(--amber);text-shadow:0 0 8px rgba(255,184,0,.4);line-height:1;transition:all .2s}
+.combo-strip.fire .combo-val{color:var(--red);text-shadow:var(--glow-red)}
+.multiplier{font-family:var(--display);font-size:12px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:4px 8px;transition:all .2s}
+.multiplier.active{color:var(--amber);border-color:var(--amber);background:rgba(255,184,0,.1);box-shadow:0 0 6px rgba(255,184,0,.2)}
+
+/* ARENA */
+.arena-wrap{flex-shrink:0;border-radius:16px;overflow:hidden;border:1px solid var(--border);position:relative;transition:border-color .2s,box-shadow .2s}
+.arena-wrap.s-go{border-color:var(--green);box-shadow:var(--glow-green)}
+.arena-wrap.s-early{border-color:var(--red);box-shadow:var(--glow-red)}
+.arena-wrap.s-done{border-color:var(--gold);box-shadow:var(--glow-gold)}
+.prog-track{height:3px;background:var(--s2);position:relative}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#00ff88);width:0%;transition:width .08s linear;box-shadow:0 0 6px var(--accent)}
+#arena{background:var(--s1);min-height:42vh;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;overflow:hidden;transition:background .12s;touch-action:manipulation}
+#arena.s-wait{background:#060810}
+#arena.s-go{background:#020d05}
+#arena.s-early{background:#0d0205}
+#arena.s-done{background:#0a0a02}
+
+/* Grid lines in arena */
+#arena::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+#arena::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.4) 100%);pointer-events:none}
+
+.ac{text-align:center;pointer-events:none;padding:20px;position:relative;z-index:1}
+.ac-icon{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;position:relative}
+.ac-title{font-size:22px;font-weight:500;line-height:1.2;font-family:var(--display);letter-spacing:1px}
+.ac-sub{font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.counter-badge{position:absolute;top:10px;right:12px;font-size:11px;font-family:var(--mono);color:var(--muted2);background:rgba(0,0,0,.5);padding:4px 9px;border-radius:20px;border:1px solid var(--border);z-index:2}
+
+/* Targets */
+.target{position:absolute;border-radius:50%;cursor:pointer;touch-action:manipulation;transition:transform .08s;display:flex;align-items:center;justify-content:center;z-index:3}
+.target:active{transform:scale(.82)!important}
+.target::before{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;opacity:.3;animation:targetPing 1s ease-out infinite}
+.target::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.3),transparent 60%)}
+
+/* SCORE POPUP */
+.score-popup{position:fixed;pointer-events:none;font-family:var(--display);font-weight:700;font-size:20px;z-index:9998;animation:scoreFloat 1.2s ease-out forwards}
+@keyframes scoreFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)}}
+
+/* STATS */
+.stats-row{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.scard{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;position:relative;overflow:hidden;transition:border-color .2s}
+.scard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;opacity:.6}
+.scard.avg::before{background:var(--accent)}
+.scard.best::before{background:var(--green)}
+.scard.count::before{background:var(--amber)}
+.sv{font-size:20px;font-weight:600;font-family:var(--display)}
+.sl{font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)}
+
+/* RESULT BOX */
+.result-box{flex-shrink:0;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:500;text-align:center;display:none;font-family:var(--display);letter-spacing:.5px;position:relative;overflow:hidden}
+.result-box::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.05) 0%,transparent 60%);animation:shimmer 2s linear infinite}
+@keyframes shimmer{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.r-great{background:var(--green-d);color:var(--green);border:1px solid #00ff8860;box-shadow:var(--glow-green)}
+.r-good{background:rgba(0,30,40,.8);color:var(--accent);border:1px solid #00d4ff60;box-shadow:0 0 12px rgba(0,212,255,.2)}
+.r-ok{background:var(--amber-d);color:var(--amber);border:1px solid #ffb80060}
+.r-slow{background:var(--red-d);color:var(--red);border:1px solid #ff335560}
+
+/* MINI HIST */
+.mini-hist{flex-shrink:0;display:none;align-items:flex-end;gap:3px;height:32px}
+.mbar{border-radius:2px 2px 0 0;flex:1;min-width:4px;background:var(--s3);border-top:1px solid var(--border);transition:height .2s}
+.mbar.cur{background:var(--accent);border-color:var(--accent);box-shadow:0 0 4px var(--accent)}
+.mbar.best-b{background:var(--green);border-color:var(--green);box-shadow:0 0 4px var(--green)}
+
+/* ACTIONS */
+.actions{flex-shrink:0;display:flex;gap:8px}
+.btn{flex:1;padding:13px;border-radius:12px;font-size:13px;font-family:var(--display);cursor:pointer;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .15s;letter-spacing:.5px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,#003a50,#001a30);border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(0,212,255,.15)}
+.btn-primary:active{box-shadow:var(--glow-cyan)}
+.btn-danger{background:var(--red-d);border-color:#ff335540;color:var(--red)}
+
+/* ZONE BAR */
+.zone-wrap{flex-shrink:0}
+.zone-bar{display:flex;height:4px;border-radius:3px;overflow:hidden;gap:2px}
+.zone-lbs{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:4px}
+
+/* HISTORY */
+#p-history{padding:12px}
+.chart-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.card-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-family:var(--mono)}
+.legend{display:flex;gap:14px;margin-top:10px}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);font-family:var(--mono)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+.hist-list{display:flex;flex-direction:column;gap:8px;padding-bottom:20px}
+.hi{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;transition:border-color .2s}
+.hi:first-child{border-color:var(--gold);background:rgba(20,18,0,.5)}
+.hi-date{font-size:12px;font-weight:500;font-family:var(--mono)}
+.hi-meta{font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+.hi-nums{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:11px;font-family:var(--mono)}
+.hi-score{font-family:var(--display);font-size:13px;font-weight:700;color:var(--gold)}
+.no-data{text-align:center;padding:60px 20px;color:var(--muted)}
+.no-data-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+.no-data-txt{font-size:13px;line-height:1.7;font-family:var(--mono)}
+
+/* SETTINGS */
+#p-settings{padding:12px;display:flex;flex-direction:column;gap:10px}
+.sg{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:14px}
+.sg-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:var(--mono)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+.chip:active{transform:scale(.96)}
+.chip.on{border-color:var(--accent);background:var(--accent-d);color:var(--accent);box-shadow:0 0 8px rgba(0,212,255,.15)}
+.btn-full{width:100%;padding:13px;border-radius:12px;font-size:13px;font-family:var(--display);cursor:pointer;border:1px solid #ff335540;background:var(--red-d);color:var(--red);letter-spacing:.5px}
+.btn-full:active{opacity:.8}
+
+/* LEADERBOARD STARS */
+.achievement-banner{position:fixed;top:calc(var(--safe-top) + 80px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1a1000,#2a1800);border:1px solid var(--gold);border-radius:14px;padding:12px 20px;font-family:var(--display);font-size:13px;color:var(--gold);text-shadow:var(--glow-gold);z-index:9997;display:none;animation:bannerIn .3s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--glow-gold);text-align:center;white-space:nowrap}
+@keyframes bannerIn{from{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.8)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes comboPulse{0%,100%{box-shadow:0 0 12px rgba(255,51,85,.2)}50%{box-shadow:0 0 24px rgba(255,51,85,.5)}}
+@keyframes targetPing{0%{transform:scale(1);opacity:.3}100%{transform:scale(1.6);opacity:0}}
+@keyframes arenaFlash{0%{opacity:1}50%{opacity:.7}100%{opacity:1}}
+@keyframes countdownBlink{0%,100%{opacity:1}50%{opacity:.3}}
+.fi{animation:fadeIn .2s ease-out}
+.si{animation:scaleIn .2s cubic-bezier(.34,1.56,.64,1)}
+.pls{animation:pulse 1.4s ease-in-out infinite}
+
+/* PARTICLE */
+.particle{position:fixed;pointer-events:none;border-radius:50%;z-index:9996;animation:particleFly .8s ease-out forwards}
+@keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+</style>
+</head>
+<body>
+<div class="achievement-banner" id="ach-banner"></div>
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" stroke="#00d4ff" stroke-width="1" fill="none" opacity=".3"/><circle cx="18" cy="18" r="11" stroke="#00d4ff" stroke-width="1" fill="none" opacity=".5"/><circle cx="18" cy="18" r="5" fill="#00d4ff" opacity=".8"/><line x1="18" y1="2" x2="18" y2="8" stroke="#00d4ff" stroke-width="1.5"/><line x1="18" y1="28" x2="18" y2="34" stroke="#00d4ff" stroke-width="1.5"/><line x1="2" y1="18" x2="8" y2="18" stroke="#00d4ff" stroke-width="1.5"/><line x1="28" y1="18" x2="34" y2="18" stroke="#00d4ff" stroke-width="1.5"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">REFLEX</div>
+        <div class="brand-sub">REACTION TRAINER</div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="score-hud">
+        <div class="sc-lbl">SCORE</div>
+        <div class="sc-val" id="hud-score">0</div>
+      </div>
+      <div class="level-badge">
+        <div class="lv">LVL</div>
+        <div class="lv-num" id="hud-level">1</div>
+        <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <button class="tb on" onclick="tab('train')">▶ تدريب</button>
+    <button class="tb" onclick="tab('history')">◈ السجل</button>
+    <button class="tb" onclick="tab('settings')">⚙ إعدادات</button>
+  </div>
+  <div class="panels">
+    <div id="p-train" class="panel on">
+
+      <!-- COMBO STRIP -->
+      <div class="combo-strip" id="combo-strip">
+        <div class="combo-left">
+          <div class="combo-icon" id="combo-icon">⚡</div>
+          <div>
+            <div class="combo-label">COMBO</div>
+            <div class="combo-val" id="combo-val">×1</div>
+          </div>
+        </div>
+        <div class="multiplier" id="multiplier-badge">MULTIPLIER</div>
+      </div>
+
+      <!-- ARENA -->
+      <div class="arena-wrap" id="arena-wrap">
+        <div class="prog-track"><div class="prog-fill" id="prog"></div></div>
+        <div id="arena" onclick="arenaClick()">
+          <div class="counter-badge" id="counter" style="display:none"></div>
+          <div class="ac" id="ac">
+            <div class="ac-icon" style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);box-shadow:0 0 20px rgba(0,212,255,.1)">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="#00d4ff" stroke="none"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>
+            </div>
+            <div class="ac-title">READY?</div>
+            <div class="ac-sub">اضغط للبدء · أصب الهدف</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZONE BAR -->
+      <div class="zone-wrap">
+        <div class="zone-bar">
+          <div class="zone" style="background:linear-gradient(90deg,#00ff88,#00cc66);flex:1.5"></div>
+          <div class="zone" style="background:linear-gradient(90deg,#0088ff,#0044dd);flex:2"></div>
+          <div class="zone" style="background:linear-gradient(90deg,#ffb800,#dd8800);flex:2"></div>
+          <div class="zone" style="background:linear-gradient(90deg,#ff3355,#dd1133);flex:2.5"></div>
+        </div>
+        <div class="zone-lbs"><span style="color:var(--green)">⚡&lt;180</span><span style="color:#60a5fa">✓&lt;270</span><span style="color:var(--amber)">~400</span><span style="color:var(--red)">400+ms</span></div>
+      </div>
+
+      <!-- RESULT -->
+      <div id="result-box" class="result-box"></div>
+
+      <!-- STATS -->
+      <div class="stats-row">
+        <div class="scard avg"><div class="sv" id="s-avg" style="color:var(--accent)">—</div><div class="sl">AVG</div></div>
+        <div class="scard best"><div class="sv" id="s-best" style="color:var(--green)">—</div><div class="sl">BEST</div></div>
+        <div class="scard count"><div class="sv" id="s-count" style="color:var(--amber)">0</div><div class="sl">HITS</div></div>
+      </div>
+
+      <!-- MINI HIST -->
+      <div id="mini-hist" class="mini-hist"></div>
+
+      <!-- ACTIONS -->
+      <div class="actions">
+        <button class="btn btn-danger" onclick="resetSession()">↺ إعادة</button>
+        <button class="btn btn-primary" onclick="saveSession()">✦ حفظ الجلسة</button>
+      </div>
+    </div>
+
+    <!-- HISTORY PANEL -->
+    <div id="p-history" class="panel">
+      <div class="chart-card">
+        <div class="card-lbl">◈ تطور الأداء</div>
+        <div style="position:relative;height:160px"><canvas id="pc" role="img" aria-label="رسم بياني لتطور زمن رد الفعل">لا توجد بيانات.</canvas></div>
+        <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--accent)"></div>متوسط</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>أفضل</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--gold)"></div>نقاط</div>
+        </div>
+      </div>
+      <div id="hist-list" class="hist-list"></div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div id="p-settings" class="panel">
+      <div class="sg">
+        <div class="sg-lbl">⚡ مستوى الصعوبة</div>
+        <div class="chips" id="d-diff">
+          <button class="chip on" onclick="opt('diff','easy',this,'d-diff')">سهل 3–5ث</button>
+          <button class="chip" onclick="opt('diff','medium',this,'d-diff')">متوسط 1.5–3ث</button>
+          <button class="chip" onclick="opt('diff','hard',this,'d-diff')">صعب 0.8–2ث</button>
+          <button class="chip" onclick="opt('diff','pro',this,'d-diff')">محترف 0.3–1ث</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sg-lbl">◈ المحفز</div>
+        <div class="chips" id="d-stim">
+          <button class="chip on" onclick="opt('stim','visual',this,'d-stim')">بصري فقط</button>
+          <button class="chip" onclick="opt('stim','both',this,'d-stim')">بصري + صوتي</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sg-lbl">▣ شكل الهدف</div>
+        <div class="chips" id="d-shape">
+          <button class="chip on" onclick="opt('shape','dot',this,'d-shape')">نقطة</button>
+          <button class="chip" onclick="opt('shape','ring',this,'d-shape')">حلقة</button>
+          <button class="chip" onclick="opt('shape','flash',this,'d-shape')">وميض كامل</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sg-lbl">◎ عدد المحاولات</div>
+        <div class="chips" id="d-trials">
+          <button class="chip" onclick="opt('trials',5,this,'d-trials')">5</button>
+          <button class="chip on" onclick="opt('trials',10,this,'d-trials')">10</button>
+          <button class="chip" onclick="opt('trials',20,this,'d-trials')">20</button>
+          <button class="chip" onclick="opt('trials',0,this,'d-trials')">بلا حد</button>
+        </div>
+      </div>
+      <button class="btn-full" onclick="clearAll()">✕ مسح كل البيانات</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CFG={diff:'easy',stim:'visual',shape:'dot',trials:10};
+const DELAYS={easy:[3000,5000],medium:[1500,3000],hard:[800,2000],pro:[300,1000]};
+const DIFF_MULT={easy:1,medium:1.5,hard:2.2,pro:3.5};
+const TCOLORS=['#f472b6','#34d399','#60a5fa','#fb923c','#a78bfa','#facc15','#2dd4bf','#f87171','#00ff88','#00d4ff'];
+
+// GAME STATE
+let phase='idle',t0=0,wTimer=null,tickInt=null,attempts=[],pgChart=null;
+let combo=0,sessionScore=0,streak=0;
+let totalScore=parseInt(localStorage.getItem('rt_totalScore')||'0');
+let totalXP=parseInt(localStorage.getItem('rt_totalXP')||'0');
+
+// LEVELS
+const LEVELS=[0,100,250,500,900,1500,2500,4000,6000,9000,15000];
+function getLevel(xp){for(let i=LEVELS.length-1;i>=0;i--)if(xp>=LEVELS[i])return i+1;return 1;}
+function getLevelProgress(xp){
+  const lv=getLevel(xp);
+  if(lv>=LEVELS.length)return 100;
+  const cur=LEVELS[lv-1];
+  const nxt=LEVELS[lv];
+  return Math.round((xp-cur)/(nxt-cur)*100);
+}
+
+function updateHUD(){
+  document.getElementById('hud-score').textContent=sessionScore.toLocaleString();
+  const lv=getLevel(totalXP);
+  document.getElementById('hud-level').textContent=lv;
+  document.getElementById('xp-bar').style.width=getLevelProgress(totalXP)+'%';
+}
+
+// SCORE CALC
+function calcScore(ms){
+  let base=0;
+  if(ms<180)base=500;
+  else if(ms<270)base=300;
+  else if(ms<400)base=150;
+  else base=50;
+  const diffBonus=DIFF_MULT[CFG.diff];
+  const comboBonus=Math.min(combo,8);
+  const multiplier=1+comboBonus*0.25;
+  return Math.round(base*diffBonus*multiplier);
+}
+
+// COMBO SYSTEM
+function updateCombo(good){
+  if(good){
+    combo++;
+    streak++;
+  } else {
+    combo=0;
+  }
+  const strip=document.getElementById('combo-strip');
+  const icon=document.getElementById('combo-icon');
+  const val=document.getElementById('combo-val');
+  const badge=document.getElementById('multiplier-badge');
+
+  val.textContent='×'+combo;
+  strip.classList.remove('hot','fire');
+  badge.classList.remove('active');
+
+  if(combo>=3&&combo<6){
+    strip.classList.add('hot');
+    icon.textContent='🔥';
+    badge.textContent='×'+Math.min(combo,8).toFixed(1)+' BONUS';
+    badge.classList.add('active');
+  } else if(combo>=6){
+    strip.classList.add('fire');
+    icon.textContent='💥';
+    badge.textContent='ULTRA ×'+(1+Math.min(combo,8)*0.25).toFixed(2);
+    badge.classList.add('active');
+  } else {
+    icon.textContent='⚡';
+    badge.textContent='MULTIPLIER';
+  }
+}
+
+// FLOATING SCORE
+function floatScore(pts,x,y,color='#ffd700'){
+  const el=document.createElement('div');
+  el.className='score-popup';
+  el.textContent='+'+pts;
+  el.style.cssText=`left:${x}px;top:${y}px;color:${color};text-shadow:0 0 10px ${color};`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1300);
+}
+
+// PARTICLES
+function burst(x,y,color){
+  for(let i=0;i<8;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const angle=Math.random()*360;
+    const dist=40+Math.random()*60;
+    const dx=Math.cos(angle*Math.PI/180)*dist;
+    const dy=Math.sin(angle*Math.PI/180)*dist;
+    const size=3+Math.random()*5;
+    p.style.cssText=`left:${x}px;top:${y}px;width:${size}px;height:${size}px;background:${color};--dx:${dx}px;--dy:${dy}px;`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),900);
+  }
+}
+
+// ACHIEVEMENT BANNER
+let achTimer=null;
+function showAch(text){
+  const b=document.getElementById('ach-banner');
+  b.textContent=text;
+  b.style.display='block';
+  b.style.animation='none';void b.offsetWidth;b.style.animation='bannerIn .3s cubic-bezier(.34,1.56,.64,1)';
+  clearTimeout(achTimer);
+  achTimer=setTimeout(()=>{b.style.display='none';},2200);
+}
+
+function tab(name){
+  ['train','history','settings'].forEach((n,i)=>{
+    document.querySelectorAll('.tb')[i].classList.toggle('on',n===name);
+    document.getElementById('p-'+n).classList.toggle('on',n===name);
+  });
+  if(name==='history')renderHistory();
+}
+
+function opt(key,val,el,row){
+  CFG[key]=val;
+  document.getElementById(row).querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function r(a,b){return Math.random()*(b-a)+a;}
+function setAC(html){
+  const ac=document.getElementById('ac');
+  ac.innerHTML=html;
+  ac.classList.remove('fi');void ac.offsetWidth;ac.classList.add('fi');
+}
+
+function arenaClick(){
+  if(phase==='idle')startWait();
+  else if(phase==='wait'){clearTimeout(wTimer);clearInterval(tickInt);removeTarget();earlyFail();}
+}
+
+function startWait(){
+  phase='wait';
+  const[lo,hi]=DELAYS[CFG.diff];
+  const delay=r(lo,hi);
+  const prog=document.getElementById('prog');
+  prog.style.transition='none';prog.style.width='0%';
+  void prog.offsetWidth;prog.style.transition='width .08s linear';
+  document.getElementById('arena').className='s-wait';
+  document.getElementById('arena-wrap').className='arena-wrap';
+  document.getElementById('counter').style.display='none';
+  setAC(`<div class="ac-icon pls" style="background:rgba(0,0,0,.4);border:1px solid var(--border)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1a3050" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/><circle cx="12" cy="12" r="2" fill="#1a3050" stroke="none"/></svg></div><div class="ac-title" style="color:var(--muted)">STANDBY...</div><div class="ac-sub">لا تضغط قبل الأوان</div>`);
+  let elapsed=0;
+  tickInt=setInterval(()=>{
+    elapsed+=80;
+    prog.style.width=Math.min(elapsed/delay*100,100)+'%';
+    if(elapsed>=delay)clearInterval(tickInt);
+  },80);
+  wTimer=setTimeout(()=>{clearInterval(tickInt);showTarget();},delay);
+}
+
+function removeTarget(){document.getElementById('arena').querySelectorAll('.target').forEach(t=>t.remove());}
+
+function showTarget(){
+  phase='ready';t0=performance.now();
+  const a=document.getElementById('arena');
+  const c=TCOLORS[Math.floor(Math.random()*TCOLORS.length)];
+  const cnt=CFG.trials>0?`${attempts.length+1} / ${CFG.trials}`:`${attempts.length+1}`;
+  document.getElementById('counter').textContent=cnt;
+  document.getElementById('counter').style.display='block';
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('arena-wrap').className='arena-wrap s-go';
+  if(CFG.shape==='flash'){
+    a.className='s-go';
+    setAC(`<div class="ac-icon si" style="background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3);box-shadow:0 0 20px rgba(0,255,136,.2)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#00ff88"/></svg></div><div class="ac-title si" style="color:var(--green)">HIT IT!</div>`);
+    a.onclick=recordHit;
+  } else {
+    a.className='s-go';
+    document.getElementById('ac').innerHTML='';
+    const el=document.createElement('div');
+    el.className='target si';
+    const sz=CFG.diff==='pro'?44:CFG.diff==='hard'?52:64;
+    const left=r(8,68), top=r(12,58);
+    el.style.cssText=`left:${left}%;top:${top}%;width:${sz}px;height:${sz}px;color:${c};`;
+    if(CFG.shape==='dot'){
+      el.style.cssText+=`background:${c};box-shadow:0 0 16px ${c},0 0 32px ${c}40;`;
+    } else {
+      el.style.cssText+=`border:3px solid ${c};background:${c}18;box-shadow:0 0 14px ${c}80;`;
+    }
+    el.onclick=e=>{
+      e.stopPropagation();
+      const rect=el.getBoundingClientRect();
+      const cx=rect.left+rect.width/2;
+      const cy=rect.top+rect.height/2;
+      recordHit(cx,cy,c);
+    };
+    a.appendChild(el);a.onclick=null;
+  }
+  if(CFG.stim==='both')playBeep();
+}
+
+function recordHit(px,py,color){
+  const rt=Math.round(performance.now()-t0);
+  phase='done';removeTarget();attempts.push(rt);
+  const pts=calcScore(rt);
+  sessionScore+=pts;
+  const xpGained=Math.round(pts/10);
+  totalXP+=xpGained;
+  totalScore+=pts;
+  localStorage.setItem('rt_totalXP',totalXP);
+  localStorage.setItem('rt_totalScore',totalScore);
+  const oldLevel=getLevel(totalXP-xpGained);
+  const newLevel=getLevel(totalXP);
+  if(newLevel>oldLevel)showAch(`🏆 LEVEL UP! → LVL ${newLevel}`);
+  updateCombo(rt<400);
+  updateStats(rt,pts);
+  updateHUD();
+  if(px&&py){
+    floatScore(pts,px-20,py-40,color||'#ffd700');
+    burst(px,py,color||'#00ff88');
+  }
+  // Achievements
+  if(combo===5)showAch('🔥 COMBO ×5 · HOT STREAK!');
+  if(combo===10)showAch('💥 COMBO ×10 · INSANE!');
+  if(rt<180&&combo>0)showAch('⚡ LIGHTNING FAST! '+rt+'ms');
+  document.getElementById('prog').style.width='0';
+  document.getElementById('counter').style.display='none';
+  const done=CFG.trials>0&&attempts.length>=CFG.trials;
+  if(done){
+    document.getElementById('arena').className='s-done';
+    document.getElementById('arena-wrap').className='arena-wrap s-done';
+    const finalScore=sessionScore;
+    setAC(`<div class="ac-icon si" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);box-shadow:0 0 20px rgba(255,215,0,.2)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#ffd700"/></svg></div><div class="ac-title" style="color:var(--gold)">COMPLETE!</div><div class="ac-sub" style="color:var(--gold)">Score: ${finalScore.toLocaleString()} pts</div>`);
+    document.getElementById('arena').onclick=null;phase='idle';
+    if(finalScore>2000)showAch('🌟 AMAZING RUN! '+finalScore.toLocaleString()+' pts');
+  } else {
+    const rem=CFG.trials>0?`${attempts.length}/${CFG.trials}`:`#${attempts.length}`;
+    const scoreColor=pts>=400?'var(--green)':pts>=200?'var(--accent)':'var(--amber)';
+    document.getElementById('arena').className='';
+    document.getElementById('arena-wrap').className='arena-wrap';
+    setAC(`<div style="font-family:var(--display);font-size:36px;font-weight:700;color:${scoreColor};text-shadow:0 0 12px ${scoreColor}" class="si">${rt}<span style="font-size:12px;color:var(--muted);margin-right:5px">ms</span></div><div style="font-family:var(--display);font-size:14px;color:var(--gold);margin:4px 0">+${pts} pts</div><div class="ac-sub">${rem} · اضغط للتالية</div>`);
+    document.getElementById('arena').onclick=arenaClick;phase='idle';
+  }
+}
+
+function earlyFail(){
+  combo=0;
+  updateCombo(false);
+  phase='idle';
+  document.getElementById('prog').style.width='0';
+  document.getElementById('counter').style.display='none';
+  document.getElementById('arena').className='s-early';
+  document.getElementById('arena-wrap').className='arena-wrap s-early';
+  setAC(`<div class="ac-icon si" style="background:rgba(255,51,85,.08);border:1px solid rgba(255,51,85,.3);box-shadow:0 0 16px rgba(255,51,85,.2)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22h20L12 2z" stroke="var(--red)" stroke-width="1.5" fill="none" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1" fill="var(--red)"/></svg></div><div class="ac-title" style="color:var(--red)">TOO EARLY!</div><div class="ac-sub" style="color:var(--red)">COMBO RESET</div>`);
+}
+
+function rating(ms){
+  if(ms<180)return{cls:'r-great',msg:`⚡ LIGHTNING — ${ms}ms`};
+  if(ms<270)return{cls:'r-good',msg:`✓ GREAT — ${ms}ms`};
+  if(ms<400)return{cls:'r-ok',msg:`GOOD — ${ms}ms`};
+  return{cls:'r-slow',msg:`${ms}ms — تدرب أكثر`};
+}
+
+function updateStats(latest,pts){
+  const avg=Math.round(attempts.reduce((a,b)=>a+b,0)/attempts.length);
+  const best=Math.min(...attempts);
+  const prev=attempts.length>1?Math.min(...attempts.slice(0,-1)):Infinity;
+  document.getElementById('s-avg').textContent=avg;
+  document.getElementById('s-best').textContent=best;
+  document.getElementById('s-count').textContent=attempts.length;
+  const R=rating(latest);
+  const newRec=latest<=prev&&attempts.length>1;
+  const box=document.getElementById('result-box');
+  box.style.display='block';
+  box.className='result-box '+R.cls+' fi';
+  box.textContent=R.msg+(newRec?' 🏆 رقم قياسي!':'')+(pts?` · +${pts}pts`:'');
+  renderMiniHist();
+}
+
+function renderMiniHist(){
+  const c=document.getElementById('mini-hist');
+  c.style.display='flex';
+  const mx=Math.max(...attempts),mn=Math.min(...attempts);
+  const range=mx-mn||1;
+  c.innerHTML=attempts.map((v,i)=>{
+    const h=Math.max(5,Math.round((1-(v-mn)/range)*26)+4);
+    const isCur=i===attempts.length-1;
+    const isBest=v===mn;
+    const cls=isBest?'best-b':isCur?'cur':'';
+    return`<div class="mbar ${cls}" style="height:${h}px" title="${v}ms"></div>`;
+  }).join('');
+}
+
+function resetSession(){
+  attempts=[];phase='idle';combo=0;sessionScore=0;
+  clearTimeout(wTimer);clearInterval(tickInt);removeTarget();
+  updateCombo(false);
+  updateHUD();
+  document.getElementById('prog').style.width='0';
+  document.getElementById('counter').style.display='none';
+  ['s-avg','s-best'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('s-count').textContent='0';
+  document.getElementById('result-box').style.display='none';
+  document.getElementById('mini-hist').style.display='none';
+  document.getElementById('arena').className='';
+  document.getElementById('arena-wrap').className='arena-wrap';
+  document.getElementById('arena').onclick=arenaClick;
+  setAC(`<div class="ac-icon" style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);box-shadow:0 0 20px rgba(0,212,255,.1)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="#00d4ff" stroke="none"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg></div><div class="ac-title">READY?</div><div class="ac-sub">اضغط للبدء · أصب الهدف</div>`);
+}
+
+function saveSession(){
+  if(!attempts.length){return;}
+  const avg=Math.round(attempts.reduce((a,b)=>a+b,0)/attempts.length);
+  const best=Math.min(...attempts);
+  const sessions=JSON.parse(localStorage.getItem('rt_sessions')||'[]');
+  sessions.push({date:new Date().toISOString(),attempts:[...attempts],avg,best,diff:CFG.diff,score:sessionScore});
+  localStorage.setItem('rt_sessions',JSON.stringify(sessions));
+  const box=document.getElementById('result-box');
+  box.style.display='block';box.className='result-box r-good fi';
+  box.textContent=`✦ محفوظ — ${attempts.length} محاولة · Score: ${sessionScore.toLocaleString()}`;
+  showAch('💾 SESSION SAVED · '+sessionScore.toLocaleString()+' pts');
+}
+
+function clearAll(){
+  if(confirm('حذف جميع السجلات؟')){
+    localStorage.removeItem('rt_sessions');
+    localStorage.removeItem('rt_totalScore');
+    localStorage.removeItem('rt_totalXP');
+    totalScore=0;totalXP=0;
+    updateHUD();
+    renderHistory();
+  }
+}
+
+function renderHistory(){
+  const sessions=JSON.parse(localStorage.getItem('rt_sessions')||'[]');
+  const list=document.getElementById('hist-list');
+  const cc=document.querySelector('.chart-card');
+  if(!sessions.length){
+    list.innerHTML='<div class="no-data"><div class="no-data-icon">◎</div><div class="no-data-txt">لا توجد جلسات محفوظة بعد.<br>دوّن تدريبك أولاً.</div></div>';
+    if(pgChart){pgChart.destroy();pgChart=null;}
+    cc.style.display='none';return;
+  }
+  cc.style.display='block';
+  const sorted=[...sessions].sort((a,b)=>(b.score||0)-(a.score||0));
+  const topScore=sorted[0]?.score||0;
+  list.innerHTML=sessions.slice().reverse().map((s,i)=>{
+    const d=new Date(s.date);
+    const ds=d.toLocaleDateString('ar-DZ')+' '+d.toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'});
+    const dl={easy:'EASY',medium:'MED',hard:'HARD',pro:'PRO'}[s.diff]||'';
+    const isTop=(s.score||0)===topScore&&topScore>0;
+    return`<div class="hi"${isTop?' style="border-color:var(--gold);background:rgba(20,18,0,.5)"':''}><div><div class="hi-date">${isTop?'👑 ':''} ${ds}</div><div class="hi-meta">${s.attempts.length} hits · ${dl}</div></div><div class="hi-nums"><div class="hi-score">${(s.score||0).toLocaleString()} pts</div><span style="color:var(--accent)">⌀ ${s.avg}ms</span><span style="color:var(--green)">↓ ${s.best}ms</span></div></div>`;
+  }).join('');
+  if(pgChart)pgChart.destroy();
+  const ctx=document.getElementById('pc').getContext('2d');
+  pgChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:sessions.map((_,i)=>`#${i+1}`),
+      datasets:[
+        {label:'متوسط',data:sessions.map(s=>s.avg),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.06)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#00d4ff',fill:true,tension:.35},
+        {label:'أفضل',data:sessions.map(s=>s.best),borderColor:'#00ff88',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#00ff88',borderDash:[5,4],tension:.35}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#3a5070',font:{size:9,family:'JetBrains Mono'}},grid:{color:'#162040'}},
+        y:{reverse:true,ticks:{color:'#3a5070',font:{size:9,family:'JetBrains Mono'},callback:v=>v+'ms'},grid:{color:'#162040'}}
+      }
+    }
+  });
+}
+
+function playBeep(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.frequency.value=1200;o.type='sine';
+    g.gain.setValueAtTime(.25,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.12);
+    o.start();o.stop(ac.currentTime+.12);
+  }catch(e){}
+}
+
+document.getElementById('arena').onclick=arenaClick;
+updateHUD();
+renderHistory();
+</script>
+</body>
+</html>
